@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
-from skimage.restoration import denoise_nl_means, estimate_sigma
-
+from skimage.restoration import denoise_nl_means, estimate_sigma, richardson_lucy
 
 def to_gray(img: np.ndarray) -> np.ndarray:
     if len(img.shape) == 2:
@@ -123,15 +122,15 @@ def wiener_like_sharpen(gray: np.ndarray) -> np.ndarray:
     return enhanced.astype(np.uint8)
 
 
-def non_local_means_denoise(gray: np.ndarray) -> np.ndarray:
+def non_local_means_denoise(gray: np.ndarray, patch_size: int = 5, patch_distance: int = 6) -> np.ndarray:
     gray_float = gray.astype(np.float32) / 255.0
     sigma_est = np.mean(estimate_sigma(gray_float, channel_axis=None))
     denoised = denoise_nl_means(
         gray_float,
         h=1.15 * sigma_est if sigma_est > 0 else 0.08,
         fast_mode=True,
-        patch_size=5,
-        patch_distance=6,
+        patch_size=patch_size,
+        patch_distance=patch_distance,
         channel_axis=None
     )
     return np.clip(denoised * 255, 0, 255).astype(np.uint8)
@@ -264,7 +263,6 @@ def boxes_to_mask(image_shape: tuple, boxes: list) -> np.ndarray:
     return mask
 
 
-from skimage.restoration import richardson_lucy
 
 
 def motion_psf(length: int = 9, angle: float = 0.0) -> np.ndarray:
@@ -323,3 +321,42 @@ def richardson_lucy_deblur_bgr(img: np.ndarray, psf: np.ndarray, iterations: int
         restored = richardson_lucy_deblur_gray(ch, psf, iterations)
         restored_channels.append(restored)
     return cv2.merge(restored_channels)
+
+
+def binary_threshold(gray: np.ndarray, thresh_value: int = 160) -> np.ndarray:
+    """
+    Fixed binary threshold.
+    Keeps bright text as white.
+    """
+    _, thresh = cv2.threshold(gray, thresh_value, 255, cv2.THRESH_BINARY)
+    return thresh
+
+
+def remove_small_connected_components(binary_img: np.ndarray, min_area: int = 20) -> np.ndarray:
+    """
+    Remove small white connected components from a binary image.
+    Useful for eliminating isolated noise specks after thresholding.
+    """
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_img, connectivity=8)
+
+    cleaned = np.zeros_like(binary_img)
+
+    for label_id in range(1, num_labels):
+        area = stats[label_id, cv2.CC_STAT_AREA]
+        if area >= min_area:
+            cleaned[labels == label_id] = 255
+
+    return cleaned
+
+
+def keep_text_polarity(binary_img: np.ndarray) -> np.ndarray:
+    """
+    Ensure likely text foreground is white and background is black.
+    If most pixels are white, invert.
+    """
+    white_ratio = np.sum(binary_img == 255) / binary_img.size
+    if white_ratio > 0.5:
+        return cv2.bitwise_not(binary_img)
+    return binary_img
+
+

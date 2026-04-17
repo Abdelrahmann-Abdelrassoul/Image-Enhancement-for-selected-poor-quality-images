@@ -56,8 +56,8 @@ def main():
     # print("[3/9] Processing building...")
     # process_building(paths["building"])
 
-    print("[4/9] Processing dog...")
-    process_dog(paths["dog"])
+    # print("[4/9] Processing dog...")
+    # process_dog(paths["dog"])
 
     # print("[5/9] Processing text...")
     # process_text(paths["text"])
