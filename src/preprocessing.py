@@ -135,3 +135,191 @@ def non_local_means_denoise(gray: np.ndarray) -> np.ndarray:
         channel_axis=None
     )
     return np.clip(denoised * 255, 0, 255).astype(np.uint8)
+
+def get_border_connected_background_mask(
+    hsv_img: np.ndarray,
+    lower_blue=(85, 25, 40),
+    upper_blue=(135, 255, 255)
+) -> np.ndarray:
+    """
+    Detect only the blue background that is connected to the image borders.
+    This avoids treating internal blue-ish pixels as background.
+    """
+    blue_mask = cv2.inRange(hsv_img, lower_blue, upper_blue)
+
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(blue_mask, connectivity=8)
+
+    border_labels = set()
+    border_labels.update(np.unique(labels[0, :]))
+    border_labels.update(np.unique(labels[-1, :]))
+    border_labels.update(np.unique(labels[:, 0]))
+    border_labels.update(np.unique(labels[:, -1]))
+
+    background_mask = np.zeros_like(blue_mask)
+    for label_id in border_labels:
+        background_mask[labels == label_id] = 255
+
+    return background_mask
+
+
+def get_foreground_from_background(background_mask: np.ndarray) -> np.ndarray:
+    """
+    Invert background mask to obtain foreground candidate mask.
+    """
+    return cv2.bitwise_not(background_mask)
+
+
+def clean_foreground_mask(fg_mask: np.ndarray) -> np.ndarray:
+    """
+    Light cleanup only.
+    Avoid aggressive morphology that merges nearby cards.
+    """
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    cleaned = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel, iterations=1)
+    cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, kernel, iterations=1)
+    return cleaned
+
+
+def watershed_split_foreground(original_bgr: np.ndarray, fg_mask: np.ndarray, dist_threshold: float = 0.28):
+    """
+    Split merged foreground objects using distance transform + watershed.
+
+    Returns:
+    - watershed label matrix
+    - sure foreground mask
+    - unknown region mask
+    """
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+
+    dist = cv2.distanceTransform(fg_mask, cv2.DIST_L2, 5)
+    dist_norm = cv2.normalize(dist, None, 0, 1.0, cv2.NORM_MINMAX)
+
+    _, sure_fg = cv2.threshold(dist_norm, dist_threshold, 1.0, cv2.THRESH_BINARY)
+    sure_fg = (sure_fg * 255).astype(np.uint8)
+
+    sure_bg = cv2.dilate(fg_mask, kernel, iterations=2)
+    unknown = cv2.subtract(sure_bg, sure_fg)
+
+    num_markers, markers = cv2.connectedComponents(sure_fg)
+    markers = markers + 1
+    markers[unknown == 255] = 0
+
+    markers = cv2.watershed(original_bgr.copy(), markers)
+
+    return markers, sure_fg, unknown
+
+
+def extract_boxes_from_markers(
+    markers: np.ndarray,
+    min_area: int = 350,
+    min_width: int = 30,
+    min_height: int = 20,
+    aspect_ratio_range: tuple = (0.6, 3.5)
+):
+    """
+    Convert watershed markers into bounding boxes.
+    """
+    boxes = []
+
+    for marker_id in np.unique(markers):
+        if marker_id <= 1:
+            continue
+
+        region_mask = np.zeros(markers.shape, dtype=np.uint8)
+        region_mask[markers == marker_id] = 255
+
+        contours, _ = cv2.findContours(region_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            continue
+
+        cnt = max(contours, key=cv2.contourArea)
+        area = cv2.contourArea(cnt)
+        if area < min_area:
+            continue
+
+        x, y, w, h = cv2.boundingRect(cnt)
+        if w < min_width or h < min_height:
+            continue
+
+        aspect_ratio = w / float(h)
+        if not (aspect_ratio_range[0] <= aspect_ratio <= aspect_ratio_range[1]):
+            continue
+
+        boxes.append((x, y, w, h))
+
+    return boxes
+
+
+def draw_boxes(image: np.ndarray, boxes: list, color=(0, 255, 0), thickness: int = 2) -> np.ndarray:
+    output = image.copy()
+    for (x, y, w, h) in boxes:
+        cv2.rectangle(output, (x, y), (x + w, y + h), color, thickness)
+    return output
+
+
+def boxes_to_mask(image_shape: tuple, boxes: list) -> np.ndarray:
+    mask = np.zeros(image_shape[:2], dtype=np.uint8)
+    for (x, y, w, h) in boxes:
+        cv2.rectangle(mask, (x, y), (x + w, y + h), 255, thickness=-1)
+    return mask
+
+
+from skimage.restoration import richardson_lucy
+
+
+def motion_psf(length: int = 9, angle: float = 0.0) -> np.ndarray:
+    """
+    Create a simple motion blur PSF.
+    angle in degrees.
+    """
+    length = max(3, length)
+    if length % 2 == 0:
+        length += 1
+
+    psf = np.zeros((length, length), dtype=np.float32)
+    center = length // 2
+    psf[center, :] = 1.0
+
+    rotation_matrix = cv2.getRotationMatrix2D((center, center), angle, 1.0)
+    psf = cv2.warpAffine(psf, rotation_matrix, (length, length))
+    psf_sum = psf.sum()
+    if psf_sum != 0:
+        psf /= psf_sum
+
+    return psf
+
+
+def disk_psf(radius: int = 3) -> np.ndarray:
+    """
+    Create a small circular blur PSF for mild out-of-focus blur.
+    """
+    radius = max(1, radius)
+    size = radius * 2 + 1
+    psf = np.zeros((size, size), dtype=np.float32)
+    cv2.circle(psf, (radius, radius), radius, 1, -1)
+    psf_sum = psf.sum()
+    if psf_sum != 0:
+        psf /= psf_sum
+    return psf
+
+
+def richardson_lucy_deblur_gray(gray: np.ndarray, psf: np.ndarray, iterations: int = 20) -> np.ndarray:
+    """
+    Richardson-Lucy deblurring for grayscale image.
+    """
+    gray_float = gray.astype(np.float32) / 255.0
+    restored = richardson_lucy(gray_float, psf, num_iter=iterations, clip=False)
+    restored = np.clip(restored, 0, 1)
+    return (restored * 255).astype(np.uint8)
+
+
+def richardson_lucy_deblur_bgr(img: np.ndarray, psf: np.ndarray, iterations: int = 20) -> np.ndarray:
+    """
+    Apply Richardson-Lucy deblurring channel-wise on BGR image.
+    """
+    channels = cv2.split(img)
+    restored_channels = []
+    for ch in channels:
+        restored = richardson_lucy_deblur_gray(ch, psf, iterations)
+        restored_channels.append(restored)
+    return cv2.merge(restored_channels)
