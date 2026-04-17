@@ -1,245 +1,358 @@
-\documentclass[12pt,a4paper]{article}
-
-\usepackage[margin=1in]{geometry}
+\documentclass[12pt]{article}
+\usepackage[a4paper, margin=1in]{geometry}
 \usepackage{graphicx}
 \usepackage{float}
-\usepackage{longtable}
-\usepackage{array}
-\usepackage{booktabs}
-\usepackage{hyperref}
-\usepackage{xcolor}
+\usepackage{amsmath}
 \usepackage{listings}
-\usepackage{titlesec}
-
-\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
-\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+\usepackage{xcolor}
 
 \lstset{
     basicstyle=\ttfamily\small,
     breaklines=true,
-    frame=single,
-    columns=fullflexible
+    frame=single
 }
 
-\title{Mini Project: Image Enhancement for Poor Quality Images}
-\author{Student Name \\ ID}
-\date{\today}
+\title{\textbf{Computer Vision Mini Project \\ Image Enhancement for selected poor quality images}}
+\author{Abdelrahman Abdelrassoul \\ ID: 202300056}
+\date{17/04/2026}
+
 
 \begin{document}
 
 \maketitle
+\pagebreak
 \tableofcontents
 \newpage
 
-\section{Introduction}
-This project applies different image enhancement techniques to selected poor-quality images. 
-Each image is processed using methods suitable for its degradation type, such as blur, noise, low contrast, or poor visual clarity.
+% =========================================================
+\section{Component Extraction}
 
-\section{Objectives}
-The objectives of this mini project are:
+% ===================== 7 CIRCLES =====================
+\subsection{7 Circles}
+
+\subsubsection{Technique Used and Justification}
+
+The image contains circular components. The following pipeline was used:
+
 \begin{itemize}
-    \item Extract important components from selected images
-    \item Enhance blurry images
-    \item Remove noise from noisy images
-    \item Improve the visual quality of challenging images
+    \item Gaussian Blur: reduce noise
+    \item Otsu Thresholding: separate objects from background
+    \item Morphological Operations: clean segmentation
+    \item Contour Analysis: detect circular shapes using circularity
 \end{itemize}
 
-\section{Tools and Libraries}
-The project was implemented in Python using:
+This method was chosen because circularity-based detection is robust for simple geometric shapes.
+
+\subsubsection{Code}
+
+\begin{lstlisting}[language=Python]
+gray = to_gray(img)
+blur = gaussian_blur(gray, 5)
+thresh = otsu_threshold(blur)
+opened = morph_open(thresh, 3, 1)
+closed = morph_close(opened, 5, 1)
+\end{lstlisting}
+
+\subsubsection{Results}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/componentExtraction/7circles/comparison.png}
+\caption{7 Circles Processing}
+\end{figure}
+
+\subsubsection{Discussion}
+
+\textbf{Pros:}
 \begin{itemize}
-    \item OpenCV
-    \item NumPy
-    \item Matplotlib
-    \item scikit-image
-    \item SciPy
+    \item Accurate circle detection
+    \item Robust to small noise
 \end{itemize}
 
-\section{Methodology}
-For each image:
-\begin{enumerate}
-    \item The original image was inspected visually
-    \item More than one suitable enhancement method was applied
-    \item Intermediate outputs were saved
-    \item The best final output was selected
-    \item Results were discussed in terms of pros, cons, limitations, and possible future work
-\end{enumerate}
-
-\section{Task 1: Component Extraction}
-
-\subsection{7circles}
-\textbf{Techniques used:}
+\textbf{Cons:}
 \begin{itemize}
-    \item Grayscale conversion
-    \item Gaussian blurring
-    \item Otsu thresholding
-    \item Morphological opening and closing
-    \item Circle/component extraction
+    \item Sensitive to thresholding
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-These techniques are suitable for isolating circular shapes from the background while reducing noise and improving contour quality.
+\textbf{Future Work:}
+Use Hough Circle Transform for better robustness.
 
-\textbf{Code:} \\
-See \texttt{src/componentExtraction.py}
-
-\textbf{Discussion:} \\
-Pros: Good isolation of circular components. \\
-Cons: May miss faint circles if contrast is weak. \\
-Future work: Hough Circle Transform tuning or adaptive preprocessing.
-
+% ===================== COVID =====================
 \subsection{COVID-19 Chart}
-\textbf{Techniques used:}
+
+\subsubsection{Technique Used}
+
 \begin{itemize}
-    \item Grayscale conversion
-    \item CLAHE
-    \item Adaptive thresholding
-    \item Morphological operations
-    \item Contour extraction
+    \item Color-based segmentation (HSV)
+    \item Background extraction
+    \item Watershed segmentation
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-Charts contain thin lines, labels, and structured elements, so local contrast enhancement and threshold refinement help separate components.
+Chosen because objects are structured boxes on colored background.
 
-\textbf{Code:} \\
-See \texttt{src/componentExtraction.py}
+\subsubsection{Code}
 
-\textbf{Discussion:} \\
-Pros: Improves component visibility and boundary extraction. \\
-Cons: Some fine text may merge with other regions. \\
-Future work: Color-based segmentation in HSV if chart colors are distinct.
+\begin{lstlisting}[language=Python]
+background_mask = get_border_connected_background_mask(hsv)
+foreground_mask = get_foreground_from_background(background_mask)
+markers = watershed_split_foreground(img, cleaned)
+\end{lstlisting}
 
-\section{Task 2: Blur Enhancement}
+\subsubsection{Results}
 
-\subsection{building}
-\textbf{Techniques used:}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/componentExtraction/COVID-19Chart/comparison.png}
+\caption{COVID Chart Extraction}
+\end{figure}
+
+\subsubsection{Discussion}
+
+\textbf{Pros:}
 \begin{itemize}
-    \item Unsharp masking
-    \item Laplacian sharpening
-    \item Frequency-domain Wiener-like sharpening
+    \item Works well for structured layouts
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-The building image contains structural edges and lines, making sharpening methods effective for visual restoration.
-
-\textbf{Discussion:} \\
-Pros: Better edge visibility and stronger structures. \\
-Cons: Aggressive sharpening may create halos. \\
-Future work: Blind deconvolution with estimated blur kernels.
-
-\subsection{dog}
-\textbf{Techniques used:}
+\textbf{Cons:}
 \begin{itemize}
-    \item Mild unsharp masking
-    \item Bilateral filtering followed by sharpening
-    \item Laplacian sharpening
+    \item Failed to detect blue boxes
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-The dog image likely contains soft textures, so enhancement must preserve natural appearance without over-amplifying noise.
+\textbf{Future Work:}
+Add color-invariant detection or edge-based segmentation.
+\pagebreak 
+% =========================================================
+\section{Blur Enhancement}
 
-\textbf{Discussion:} \\
-Pros: Better fur and edge clarity. \\
-Cons: Strong sharpening can make the image unnatural. \\
-Future work: More advanced deblurring methods with noise-aware restoration.
+% ===================== BUILDING =====================
+\subsection{Building Image}
 
-\section{Task 3: Noise Removal}
+\subsubsection{Technique Used}
 
-\subsection{text}
-\textbf{Techniques used:}
 \begin{itemize}
-    \item Median filtering
-    \item Adaptive thresholding
-    \item Morphological cleanup
+    \item Unsharp Masking
+    \item Bilateral + Sharpen
+    \item Richardson-Lucy Deconvolution
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-Text images require strong noise suppression while preserving letter strokes and readability.
+RL was chosen because it performs actual deblurring instead of just sharpening.
 
-\textbf{Discussion:} \\
-Pros: Good text/background separation. \\
-Cons: Tiny characters may become thinner or broken. \\
-Future work: Stroke-aware morphology or OCR-oriented enhancement.
+\subsubsection{Code}
 
-\subsection{rocket}
-\textbf{Techniques used:}
+\begin{lstlisting}[language=Python]
+psf = disk_psf(radius=3)
+rl = richardson_lucy_deblur_bgr(img, psf)
+\end{lstlisting}
+
+\subsubsection{Results}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/blurEnhancement/building/comparison.png}
+\caption{Building Deblurring}
+\end{figure}
+
+\subsubsection{Discussion}
+
+\textbf{Pros:}
 \begin{itemize}
-    \item Median filtering
-    \item Bilateral filtering
-    \item Non-local means denoising
+    \item RL improves edge sharpness
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-These methods reduce noise while preserving rocket boundaries and major structures.
-
-\textbf{Discussion:} \\
-Pros: Better denoising with preserved edges. \\
-Cons: Over-smoothing may remove fine details. \\
-Future work: Estimate noise type more precisely before choosing the filter.
-
-\subsection{windChart}
-\textbf{Techniques used:}
+\textbf{Cons:}
 \begin{itemize}
-    \item Median filtering
-    \item Bilateral filtering
-    \item CLAHE
-    \item Otsu thresholding
+    \item Artifacts and ringing
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-The image contains chart data and labels, so denoising must preserve lines and readability.
+\textbf{Future Work:}
+Blind deconvolution or deep learning-based restoration.
 
-\textbf{Discussion:} \\
-Pros: Better readability and cleaner chart structure. \\
-Cons: Thresholding may remove some weak lines. \\
-Future work: Line-specific enhancement or adaptive local denoising.
+% ===================== DOG =====================
+\subsection{Dog Image}
 
-\section{Task 4: Visual Enhancement}
+\subsubsection{Technique Used}
 
-\subsection{newsPaper}
-\textbf{Techniques used:}
 \begin{itemize}
-    \item Grayscale conversion
-    \item CLAHE
-    \item Adaptive thresholding
-    \item Morphological cleanup
+    \item Unsharp Mask
+    \item Bilateral + Sharpen
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-Newspaper images often suffer from low contrast and non-uniform illumination, so local contrast enhancement is effective.
+\subsubsection{Results}
 
-\textbf{Discussion:} \\
-Pros: Improved text readability and page structure. \\
-Cons: Noise may be amplified in very weak areas. \\
-Future work: Denoising before contrast enhancement.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/blurEnhancement/dog/comparison.png}
+\caption{Dog Deblurring}
+\end{figure}
 
-\subsection{namePlate}
-\textbf{Techniques used:}
+\subsubsection{Discussion}
+
+\textbf{Pros:}
+Enhances texture.
+
+\textbf{Cons:}
+Noise amplification.
+
+\pagebreak
+% =========================================================
+\section{Noise Removal}
+
+% ===================== TEXT =====================
+\subsection{Text Image}
+
+\subsubsection{Technique Used}
+
 \begin{itemize}
-    \item Gamma correction
+    \item Median Filtering
+    \item Thresholding
+    \item Morphological Cleaning
+\end{itemize}
+
+Chosen because noise is salt-and-pepper.
+
+\subsubsection{Results}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/noiseRemoval/text/comparison.png}
+\caption{Text Noise Removal}
+\end{figure}
+
+\subsubsection{Discussion}
+
+\textbf{Pros:}
+Removes noise effectively.
+
+\textbf{Cons:}
+Smears small text.
+
+\textbf{Future Work:}
+Use adaptive filtering.
+
+% ===================== ROCKET =====================
+\subsection{Rocket Image}
+
+\subsubsection{Technique Used}
+
+Median filtering was most effective.
+
+\textbf{Reason:} Salt noise.
+
+\subsubsection{Results}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/noiseRemoval/rocket/comparison.png}
+\caption{Rocket Noise Removal}
+\end{figure}
+
+\subsubsection{Discussion}
+
+Median preserves edges better than Gaussian.
+
+% ===================== WIND =====================
+\subsection{Wind Chart}
+
+\subsubsection{Technique Used}
+
+Median filtering only.
+
+\textbf{Reason:} Other methods degraded image.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/noiseRemoval/windChart/comparison.png}
+\caption{Wind Chart Noise Removal}
+\end{figure}
+
+\subsubsection{Discussion}
+
+\textbf{Observation:}
+\begin{itemize}
+    \item CLAHE amplified noise
+    \item Background normalization failed
+\end{itemize}
+
+\textbf{Conclusion:}
+Simple method worked best.
+\pagebreak
+
+% =========================================================
+\section{Visual Enhancement}
+
+% ===================== NEWSPAPER =====================
+\subsection{Newspaper}
+
+\subsubsection{Technique Used}
+
+\begin{itemize}
+    \item Otsu Threshold FIRST
+    \item Connected Component Filtering
+\end{itemize}
+
+Chosen because filtering blurred small text.
+
+\subsubsection{Results}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/visualEnhancement/newsPaper/comparison.png}
+\caption{Newspaper Enhancement}
+\end{figure}
+
+\subsubsection{Discussion}
+
+\textbf{Pros:}
+\begin{itemize}
+    \item Preserves small text
+\end{itemize}
+
+\textbf{Cons:}
+\begin{itemize}
+    \item Some noise remains
+\end{itemize}
+
+\textbf{Failure Reason:}
+Filtering before threshold destroyed characters.
+
+\textbf{Future Work:}
+Use OCR-aware enhancement.
+
+% ===================== NAME PLATE =====================
+\subsection{Name Plate}
+
+\subsubsection{Technique Used}
+
+\begin{itemize}
+    \item Gamma Correction
     \item CLAHE
     \item Sharpening
-    \item Adaptive thresholding
 \end{itemize}
 
-\textbf{Why these techniques were selected:} \\
-The image may suffer from poor lighting and weak character visibility, making gamma and local contrast enhancement appropriate.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{../data/processed/visualEnhancement/namePlate/comparison.png}
+\caption{Name Plate Enhancement}
+\end{figure}
 
-\textbf{Discussion:} \\
-Pros: Better plate detail visibility. \\
-Cons: Thresholding may not always help if reflections are strong. \\
-Future work: Reflection suppression and local illumination correction.
+\subsubsection{Discussion}
 
+\textbf{Pros:}
+Improves readability.
+
+\textbf{Cons:}
+May over-enhance noise.
+\pagebreak
+
+% =========================================================
 \section{Conclusion}
-Different images require different enhancement strategies. 
-A single method is not suitable for all degradations, so the project applied task-specific techniques and compared intermediate outputs to select the best final result.
 
-\section{Future Work}
-Possible future improvements include:
+This project demonstrated that:
+
 \begin{itemize}
-    \item Blind deconvolution for blur restoration
-    \item Better noise estimation for adaptive denoising
-    \item Color-space based chart extraction
-    \item OCR-guided enhancement for text-heavy images
+    \item No single method works for all images
+    \item Simpler methods (median) sometimes outperform complex ones
+    \item Understanding noise type is critical
 \end{itemize}
 
 \end{document}
