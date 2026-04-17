@@ -4,7 +4,8 @@ import numpy as np
 
 from io_helpers import read_image, save_image, get_output_dir
 from preprocessing import (
-    to_gray, gaussian_blur, otsu_threshold, get_border_connected_background_mask, get_foreground_from_background, clean_foreground_mask, watershed_split_foreground,
+    to_gray, gaussian_blur, otsu_threshold, get_border_connected_background_mask, 
+    get_foreground_from_background, clean_foreground_mask, watershed_split_foreground,
     morph_open, morph_close, canny_edges, extract_boxes_from_markers, boxes_to_mask, draw_boxes
 )
 from visualization import save_comparison

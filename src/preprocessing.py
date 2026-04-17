@@ -24,10 +24,6 @@ def bilateral_filter(img: np.ndarray, d: int = 9, sigma_color: int = 75, sigma_s
     return cv2.bilateralFilter(img, d, sigma_color, sigma_space)
 
 
-def histogram_equalization(gray: np.ndarray) -> np.ndarray:
-    return cv2.equalizeHist(gray)
-
-
 def apply_clahe(gray: np.ndarray, clip_limit: float = 2.0, tile_grid_size=(8, 8)) -> np.ndarray:
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
     return clahe.apply(gray)
@@ -62,16 +58,6 @@ def morph_open(img: np.ndarray, ksize: int = 3, iterations: int = 1) -> np.ndarr
 def morph_close(img: np.ndarray, ksize: int = 3, iterations: int = 1) -> np.ndarray:
     kernel = np.ones((ksize, ksize), np.uint8)
     return cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel, iterations=iterations)
-
-
-def morph_erode(img: np.ndarray, ksize: int = 3, iterations: int = 1) -> np.ndarray:
-    kernel = np.ones((ksize, ksize), np.uint8)
-    return cv2.erode(img, kernel, iterations=iterations)
-
-
-def morph_dilate(img: np.ndarray, ksize: int = 3, iterations: int = 1) -> np.ndarray:
-    kernel = np.ones((ksize, ksize), np.uint8)
-    return cv2.dilate(img, kernel, iterations=iterations)
 
 
 def canny_edges(gray: np.ndarray, t1: int = 50, t2: int = 150) -> np.ndarray:
@@ -263,8 +249,6 @@ def boxes_to_mask(image_shape: tuple, boxes: list) -> np.ndarray:
     return mask
 
 
-
-
 def motion_psf(length: int = 9, angle: float = 0.0) -> np.ndarray:
     """
     Create a simple motion blur PSF.
@@ -358,5 +342,46 @@ def keep_text_polarity(binary_img: np.ndarray) -> np.ndarray:
     if white_ratio > 0.5:
         return cv2.bitwise_not(binary_img)
     return binary_img
+
+
+def remove_small_black_noise(binary_img: np.ndarray, min_area: int = 6) -> np.ndarray:
+    """
+    Remove tiny black specks from a white-background binary image.
+    """
+    inv = cv2.bitwise_not(binary_img)
+
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(inv, connectivity=8)
+    cleaned_inv = np.zeros_like(inv)
+
+    for label_id in range(1, num_labels):
+        area = stats[label_id, cv2.CC_STAT_AREA]
+        if area >= min_area:
+            cleaned_inv[labels == label_id] = 255
+
+    return cv2.bitwise_not(cleaned_inv)
+
+
+def remove_thin_vertical_noise(binary_img: np.ndarray, max_width: int = 2, min_height: int = 8) -> np.ndarray:
+    """
+    Remove thin vertical black noise components from a white-background binary image
+    while keeping wider text components.
+    """
+    inv = cv2.bitwise_not(binary_img)
+
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(inv, connectivity=8)
+    cleaned_inv = inv.copy()
+
+    for label_id in range(1, num_labels):
+        x = stats[label_id, cv2.CC_STAT_LEFT]
+        y = stats[label_id, cv2.CC_STAT_TOP]
+        w = stats[label_id, cv2.CC_STAT_WIDTH]
+        h = stats[label_id, cv2.CC_STAT_HEIGHT]
+        area = stats[label_id, cv2.CC_STAT_AREA]
+
+        # Remove narrow tall junk; keep normal text strokes
+        if w <= max_width and h >= min_height and area <= max_width * h:
+            cleaned_inv[labels == label_id] = 0
+
+    return cv2.bitwise_not(cleaned_inv)
 
 

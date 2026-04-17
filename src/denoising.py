@@ -1,11 +1,9 @@
 import os
-import cv2
-import numpy as np
 
 from io_helpers import read_image, save_image, get_output_dir
 from preprocessing import (
     to_gray, median_filter, bilateral_filter, non_local_means_denoise,
-    otsu_threshold, adaptive_threshold, morph_open, morph_close, gaussian_blur, 
+    otsu_threshold, morph_close, gaussian_blur, 
     remove_small_connected_components, keep_text_polarity, binary_threshold,
     apply_clahe
 )

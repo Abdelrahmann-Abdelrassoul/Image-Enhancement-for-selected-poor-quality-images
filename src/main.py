@@ -1,5 +1,4 @@
 import os
-
 from io_helpers import get_project_root, ensure_dir
 from componentExtraction import process_7circles, process_covid_chart
 from deblurring import process_building, process_dog
@@ -47,32 +46,32 @@ def main():
     print("Starting Mini Project Image Processing")
     print("=" * 60)
 
-    # print("\n[1/9] Processing 7circles...")
-    # process_7circles(paths["7circles"])
+    print("\n[1/9] Processing 7circles...")
+    process_7circles(paths["7circles"])
 
-    # print("[2/9] Processing COVID-19Chart...")
-    # process_covid_chart(paths["COVID-19Chart"])
+    print("[2/9] Processing COVID-19Chart...")
+    process_covid_chart(paths["COVID-19Chart"])
 
-    # print("[3/9] Processing building...")
-    # process_building(paths["building"])
+    print("[3/9] Processing building...")
+    process_building(paths["building"])
 
-    # print("[4/9] Processing dog...")
-    # process_dog(paths["dog"])
+    print("[4/9] Processing dog...")
+    process_dog(paths["dog"])
 
-    # print("[5/9] Processing text...")
-    # process_text(paths["text"])
+    print("[5/9] Processing text...")
+    process_text(paths["text"])
 
-    # print("[6/9] Processing rocket...")
-    # process_rocket(paths["rocket"])
+    print("[6/9] Processing rocket...")
+    process_rocket(paths["rocket"])
 
-    # print("[7/9] Processing windChart...")
-    # process_wind_chart(paths["windChart"])
+    print("[7/9] Processing windChart...")
+    process_wind_chart(paths["windChart"])
 
-    # print("[8/9] Processing newsPaper...")
-    # process_newspaper(paths["newsPaper"])
+    print("[8/9] Processing newsPaper...")
+    process_newspaper(paths["newsPaper"])
 
-    # print("[9/9] Processing namePlate...")
-    # process_name_plate(paths["namePlate"])
+    print("[9/9] Processing namePlate...")
+    process_name_plate(paths["namePlate"])
 
     print("\nDone. Check outputs inside data/processed/")
 

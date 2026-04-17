@@ -1,11 +1,10 @@
 import os
-import cv2
 import numpy as np
 
 from io_helpers import read_image, save_image, get_output_dir
 from preprocessing import (
     unsharp_mask, laplacian_sharpen, bilateral_filter,
-    wiener_like_sharpen, to_gray, disk_psf, motion_psf, richardson_lucy_deblur_bgr
+    disk_psf, motion_psf, richardson_lucy_deblur_bgr
 )
 from visualization import save_comparison
 
