@@ -1,0 +1,245 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible
+}
+
+\title{Mini Project: Image Enhancement for Poor Quality Images}
+\author{Student Name \\ ID}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+This project applies different image enhancement techniques to selected poor-quality images. 
+Each image is processed using methods suitable for its degradation type, such as blur, noise, low contrast, or poor visual clarity.
+
+\section{Objectives}
+The objectives of this mini project are:
+\begin{itemize}
+    \item Extract important components from selected images
+    \item Enhance blurry images
+    \item Remove noise from noisy images
+    \item Improve the visual quality of challenging images
+\end{itemize}
+
+\section{Tools and Libraries}
+The project was implemented in Python using:
+\begin{itemize}
+    \item OpenCV
+    \item NumPy
+    \item Matplotlib
+    \item scikit-image
+    \item SciPy
+\end{itemize}
+
+\section{Methodology}
+For each image:
+\begin{enumerate}
+    \item The original image was inspected visually
+    \item More than one suitable enhancement method was applied
+    \item Intermediate outputs were saved
+    \item The best final output was selected
+    \item Results were discussed in terms of pros, cons, limitations, and possible future work
+\end{enumerate}
+
+\section{Task 1: Component Extraction}
+
+\subsection{7circles}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Grayscale conversion
+    \item Gaussian blurring
+    \item Otsu thresholding
+    \item Morphological opening and closing
+    \item Circle/component extraction
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+These techniques are suitable for isolating circular shapes from the background while reducing noise and improving contour quality.
+
+\textbf{Code:} \\
+See \texttt{src/componentExtraction.py}
+
+\textbf{Discussion:} \\
+Pros: Good isolation of circular components. \\
+Cons: May miss faint circles if contrast is weak. \\
+Future work: Hough Circle Transform tuning or adaptive preprocessing.
+
+\subsection{COVID-19 Chart}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Grayscale conversion
+    \item CLAHE
+    \item Adaptive thresholding
+    \item Morphological operations
+    \item Contour extraction
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+Charts contain thin lines, labels, and structured elements, so local contrast enhancement and threshold refinement help separate components.
+
+\textbf{Code:} \\
+See \texttt{src/componentExtraction.py}
+
+\textbf{Discussion:} \\
+Pros: Improves component visibility and boundary extraction. \\
+Cons: Some fine text may merge with other regions. \\
+Future work: Color-based segmentation in HSV if chart colors are distinct.
+
+\section{Task 2: Blur Enhancement}
+
+\subsection{building}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Unsharp masking
+    \item Laplacian sharpening
+    \item Frequency-domain Wiener-like sharpening
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+The building image contains structural edges and lines, making sharpening methods effective for visual restoration.
+
+\textbf{Discussion:} \\
+Pros: Better edge visibility and stronger structures. \\
+Cons: Aggressive sharpening may create halos. \\
+Future work: Blind deconvolution with estimated blur kernels.
+
+\subsection{dog}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Mild unsharp masking
+    \item Bilateral filtering followed by sharpening
+    \item Laplacian sharpening
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+The dog image likely contains soft textures, so enhancement must preserve natural appearance without over-amplifying noise.
+
+\textbf{Discussion:} \\
+Pros: Better fur and edge clarity. \\
+Cons: Strong sharpening can make the image unnatural. \\
+Future work: More advanced deblurring methods with noise-aware restoration.
+
+\section{Task 3: Noise Removal}
+
+\subsection{text}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Median filtering
+    \item Adaptive thresholding
+    \item Morphological cleanup
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+Text images require strong noise suppression while preserving letter strokes and readability.
+
+\textbf{Discussion:} \\
+Pros: Good text/background separation. \\
+Cons: Tiny characters may become thinner or broken. \\
+Future work: Stroke-aware morphology or OCR-oriented enhancement.
+
+\subsection{rocket}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Median filtering
+    \item Bilateral filtering
+    \item Non-local means denoising
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+These methods reduce noise while preserving rocket boundaries and major structures.
+
+\textbf{Discussion:} \\
+Pros: Better denoising with preserved edges. \\
+Cons: Over-smoothing may remove fine details. \\
+Future work: Estimate noise type more precisely before choosing the filter.
+
+\subsection{windChart}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Median filtering
+    \item Bilateral filtering
+    \item CLAHE
+    \item Otsu thresholding
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+The image contains chart data and labels, so denoising must preserve lines and readability.
+
+\textbf{Discussion:} \\
+Pros: Better readability and cleaner chart structure. \\
+Cons: Thresholding may remove some weak lines. \\
+Future work: Line-specific enhancement or adaptive local denoising.
+
+\section{Task 4: Visual Enhancement}
+
+\subsection{newsPaper}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Grayscale conversion
+    \item CLAHE
+    \item Adaptive thresholding
+    \item Morphological cleanup
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+Newspaper images often suffer from low contrast and non-uniform illumination, so local contrast enhancement is effective.
+
+\textbf{Discussion:} \\
+Pros: Improved text readability and page structure. \\
+Cons: Noise may be amplified in very weak areas. \\
+Future work: Denoising before contrast enhancement.
+
+\subsection{namePlate}
+\textbf{Techniques used:}
+\begin{itemize}
+    \item Gamma correction
+    \item CLAHE
+    \item Sharpening
+    \item Adaptive thresholding
+\end{itemize}
+
+\textbf{Why these techniques were selected:} \\
+The image may suffer from poor lighting and weak character visibility, making gamma and local contrast enhancement appropriate.
+
+\textbf{Discussion:} \\
+Pros: Better plate detail visibility. \\
+Cons: Thresholding may not always help if reflections are strong. \\
+Future work: Reflection suppression and local illumination correction.
+
+\section{Conclusion}
+Different images require different enhancement strategies. 
+A single method is not suitable for all degradations, so the project applied task-specific techniques and compared intermediate outputs to select the best final result.
+
+\section{Future Work}
+Possible future improvements include:
+\begin{itemize}
+    \item Blind deconvolution for blur restoration
+    \item Better noise estimation for adaptive denoising
+    \item Color-space based chart extraction
+    \item OCR-guided enhancement for text-heavy images
+\end{itemize}
+
+\end{document}
